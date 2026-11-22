@@ -1,0 +1,14 @@
+api_version: 1
+php_version: 8.2
+
+# Pantheon supports MariaDB 10.4 and 10.6.
+# https://pantheon.io/docs/pantheon-yml#specify-a-version-of-mariadb
+database:
+  version: 10.6
+
+enforce_https: transitional
+
+protected_web_paths:
+  - /private/
+  - /wp-content/uploads/private/
+  - /xmlrpc.php
