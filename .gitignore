@@ -1,0 +1,75 @@
+# Local development #
+#####################
+/database
+dump.sql
+.lando.yml
+.htaccess
+.env
+.env.*
+
+# Local-only config (credentials)
+wp-config-local.php
+wp-cli.local.yml
+
+# WordPress #
+#############
+# Uploads live in Pantheon's files/ directory, not in git.
+wp-content/uploads
+wp-content/blogs.dir/
+wp-content/upgrade/
+wp-content/upgrade-temp-backup/
+wp-content/backup-db/
+wp-content/backups/
+wp-content/ai1wm-backups/
+wp-content/updraft/
+wp-content/backupwordpress-*/
+wp-content/managewp/backups/
+wp-content/cache/
+wp-content/wflogs/
+wp-content/advanced-cache.php
+wp-content/wp-cache-config.php
+wp-content/object-cache.php
+sitemap.xml
+sitemap.xml.gz
+
+# Avoid accidental modification of pantheon.upstream.yml in sites
+# created from this upstream
+pantheon.upstream.yml
+
+# Packages #
+############
+*.7z
+*.dmg
+*.gz
+*.bz2
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.tgz
+!wp-includes/**/*.gz
+
+# Logs and databases #
+######################
+*.log
+*.sql
+
+# Dependencies #
+################
+node_modules/
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Thumbs.db
+._*
+
+# Editors #
+###########
+.idea/
+.vscode/
+*.un~
+.sass-cache
