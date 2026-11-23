@@ -1,7 +1,6 @@
 # Local development #
 #####################
 /database
-dump.sql
 .lando.yml
 .htaccess
 .env
