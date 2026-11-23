@@ -1,0 +1,194 @@
+<?php
+
+namespace GeminiLabs\SiteReviews\Notices;
+
+use GeminiLabs\SiteReviews\Defaults\GatekeeperNoticeDefaults;
+use GeminiLabs\SiteReviews\Gatekeeper;
+use GeminiLabs\SiteReviews\Helper;
+use GeminiLabs\SiteReviews\Helpers\Arr;
+use GeminiLabs\SiteReviews\Helpers\Str;
+use GeminiLabs\SiteReviews\Modules\Html\Builder;
+
+class GatekeeperNotice extends AbstractNotice
+{
+    protected array $errors = [];
+    protected string $type = 'notice-error';
+
+    protected function canLoad(): bool
+    {
+        if (!parent::canLoad()) {
+            return false;
+        }
+        $transient = glsr()->prefix.'gatekeeper';
+        $errors = get_transient($transient);
+        if (!is_array($errors)) {
+            $this->errors = [];
+            return false;
+        }
+        $this->errors = $errors;
+        delete_transient($transient);
+        if (empty($this->errors(Gatekeeper::BLOCKING_ERRORS))) {
+            $this->type = 'notice-warning'; // untested versions only: a warning, not a failure
+        }
+        return true;
+    }
+
+    protected function data(): array
+    {
+        $externalErrors = $this->errors(Gatekeeper::BLOCKING_ERRORS);
+        $internalErrors = $this->errors([Gatekeeper::ERROR_NOT_TESTED]);
+        $name = sprintf('<strong>%s</strong>', glsr()->name);
+        if (!empty($externalErrors)) {
+            /* translators: %1$s: this plugin's name, %2$s: link(s) to the required plugin(s) */
+            $message = _nx(
+                '%1$s requires the latest version of %2$s to enable the integration.',
+                '%1$s requires the latest version of the following plugins to enable integration: %2$s',
+                count($externalErrors),
+                'admin-text',
+                'site-reviews'
+            );
+            return [
+                'actions' => $this->pluginActions($externalErrors),
+                'message' => sprintf($message, $name, $this->pluginLinks($externalErrors)),
+            ];
+        }
+        /* translators: %1$s: this plugin's name, %2$s: link(s) to the untested plugin(s) */
+        $message = _nx(
+            '%1$s has not been tested with the installed version of %2$s and may need an update.',
+            '%1$s has not been tested with the installed versions of the following plugins and may need an update: %2$s',
+            count($internalErrors),
+            'admin-text',
+            'site-reviews'
+        );
+        return [
+            'actions' => $this->pluginActions($internalErrors),
+            'message' => sprintf($message, $name, $this->pluginLinks($internalErrors)),
+        ];
+    }
+
+    protected function errors(array $errorKeys): array
+    {
+        $errors = array_map(
+            fn ($data) => glsr(GatekeeperNoticeDefaults::class)->restrict(Arr::consolidate($data)),
+            $this->errors
+        );
+        return array_filter($errors,
+            fn ($data) => in_array($data['error'], $errorKeys)
+        );
+    }
+
+    protected function hasPermission(): bool
+    {
+        return true;
+    }
+
+    protected function isDismissible(): bool
+    {
+        return true;
+    }
+
+    protected function isNoticeScreen(): bool
+    {
+        $screen = glsr_current_screen();
+        if (in_array($screen->id, ['dashboard', 'plugins', 'update-core'])) {
+            return true;
+        }
+        if (is_a($screen, 'WP_Screen') && $screen->in_admin('network')) {
+            return true;
+        }
+        return parent::isNoticeScreen();
+    }
+
+    protected function pluginActionNotActivated(array $data): string
+    {
+        if (!current_user_can('activate_plugins')) {
+            return '';
+        }
+        return $this->pluginAction([
+            'action' => 'activate',
+            'admin_page' => 'plugins.php',
+            'name' => $data['name'],
+            'nonce_prefix' => 'activate-plugin_',
+            'plugin' => $data['plugin'],
+            /* translators: %s: the plugin name */
+            'text' => _x('Activate %s', 'admin-text', 'site-reviews'),
+        ]);
+    }
+
+    protected function pluginActionNotInstalled(array $data): string
+    {
+        if (!current_user_can('install_plugins')) {
+            return '';
+        }
+        return $this->pluginAction([
+            'action' => 'install-plugin',
+            'admin_page' => 'update.php',
+            'name' => $data['name'],
+            'nonce_prefix' => 'install-plugin_',
+            'plugin' => $data['textdomain'],
+            /* translators: %s: the plugin name */
+            'text' => _x('Install %s', 'admin-text', 'site-reviews'),
+        ]);
+    }
+
+    protected function pluginActionNotSupported(array $data): string
+    {
+        if (!current_user_can('update_plugins')) {
+            return '';
+        }
+        return $this->pluginAction([
+            'action' => 'upgrade-plugin',
+            'admin_page' => 'update.php',
+            'name' => $data['name'],
+            'nonce_prefix' => 'upgrade-plugin_',
+            'plugin' => $data['plugin'],
+            /* translators: %s: the plugin name */
+            'text' => _x('Update %s', 'admin-text', 'site-reviews'),
+        ]);
+    }
+
+    protected function pluginAction(array $data): string
+    {
+        $args = [
+            'action' => $data['action'],
+            'plugin' => $data['plugin'],
+            'plugin_status' => filter_input(\INPUT_GET, 'plugin_status'),
+            'paged' => filter_input(\INPUT_GET, 'paged'),
+            's' => filter_input(\INPUT_GET, 's'),
+            'trigger' => 'notice',
+        ];
+        $url = add_query_arg($args, self_admin_url($data['admin_page']));
+        $url = wp_nonce_url($url, $data['nonce_prefix'].$data['plugin']);
+        return glsr(Builder::class)->a([
+            'class' => 'button button-primary',
+            'href' => $url,
+            'text' => sprintf($data['text'], $data['name']),
+        ]);
+    }
+
+    protected function pluginActions(array $errors): string
+    {
+        $actions = [];
+        foreach ($errors as $plugin => $data) {
+            $method = Helper::buildMethodName('pluginAction', $data['error']);
+            if (method_exists($this, $method)) {
+                $data['plugin'] = $plugin;
+                $actions[] = call_user_func([$this, $method], $data);
+            }
+        }
+        return implode(' ', $actions);
+    }
+
+    protected function pluginLinks(array $errors): string
+    {
+        $links = [];
+        foreach ($errors as $plugin => $data) {
+            $links[] = sprintf('<span class="plugin-%s"><a href="%s">%s</a></span>',
+                $data['textdomain'],
+                $data['plugin_uri'],
+                $data['name']
+            );
+        }
+        return Str::naturalJoin($links);
+    }
+}

@@ -1,0 +1,52 @@
+<?php defined('ABSPATH') || exit; ?>
+
+<?php if (glsr()->can('update_plugins')): ?>
+<div class="glsr-card postbox">
+    <h3 class="glsr-card-heading">
+        <button type="button" class="glsr-accordion-trigger" aria-expanded="false" aria-controls="tools-rollback-plugin">
+            <span class="title dashicons-before dashicons-admin-tools"><?php echo _x('Rollback Plugin', 'admin-text', 'site-reviews'); ?></span>
+            <span class="icon"></span>
+        </button>
+    </h3>
+    <div id="tools-rollback-plugin" class="inside">
+        <?php if (empty($rollback_versions)) : ?>
+            <?php /* translators: %s: link to wordpress.org */ echo wp_get_admin_notice(
+                sprintf(_x('Unable to connect to %s to get the available plugin versions.', 'wordpress.org (admin-text)', 'site-reviews'),
+                    '<a href="wordpress.org" target="_blank">wordpress.org</a>'
+                ),
+                ['type' => 'error', 'additional_classes' => ['inline']]
+            ); ?>
+        <?php else: ?>
+            <?php /* translators: %s: link with the text "contact us" */ echo wp_get_admin_notice(
+                sprintf(_x('If you are using this tool to fix a problem with Site Reviews, please %s so that it can be fixed.', 'submit a support request (admin-text)', 'site-reviews'),
+                    glsr_admin_link('documentation.support', _x('contact us', 'admin-text', 'site-reviews'), '#support-contact-support'),
+                ),
+                ['type' => 'warning', 'additional_classes' => ['inline']]
+            ); ?>
+            <p>
+                <?php /* translators: %1$s: installed plugin version, %2$s: plugin name */ echo sprintf(_x('You currently have version %1$s installed of %2$s. Run this tool to rollback to a previous release.', 'admin-text', 'site-reviews'),
+                    '<strong>'.glsr()->version.'</strong>',
+                    glsr()->name
+                ); ?>
+            </p>
+            <script><?php echo $rollback_script; ?></script>
+            <form id="rollback-plugin" method="get" action="<?php echo admin_url('update.php'); ?>">
+                <input type="hidden" name="_wpnonce" value="<?php echo wp_create_nonce('rollback-'.glsr()->id); ?>">
+                <input type="hidden" name="action" value="<?php echo 'rollback-'.glsr()->id; ?>">
+                <p>
+                    <label for="rollback_version"><strong><?php echo _x('Rollback Version To', 'admin-text', 'site-reviews'); ?></strong></label><br>
+                    <select name="version" id="rollback_version">
+                        <?php foreach ($rollback_versions as $version) : ?>
+                            <option value="<?php echo $version; ?>"><?php echo glsr()->name; ?> <?php echo $version; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </p>
+                <button type="submit" class="glsr-button button button-large button-primary"
+                    data-loading="<?php /* translators: %s: the selected plugin version */ echo esc_attr_x('Rolling back to %s, please wait...', 'admin-text', 'site-reviews'); ?>"
+                ><?php echo _x('Rollback Plugin', 'admin-text', 'site-reviews'); ?>
+                </button>
+            </form>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
