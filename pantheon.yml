@@ -8,9 +8,11 @@ database:
 
 enforce_https: transitional
 
-# Multisite: subdomain network on Live, subdirectory on dev/test/multidevs.
-# https://docs.pantheon.io/guides/multisite/search-replace
-search_replace: convert
+# Multisite search-replace is not supported on Integrated Composer / external
+# repository sites, so it is disabled. Domains are converted manually with
+# `terminus remote:wp <site>.<env> -- search-replace ... --network`.
+# https://docs.pantheon.io/guides/multisite/search-replace#known-issues
+search_replace: false
 
 protected_web_paths:
   - /private/
