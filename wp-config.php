@@ -59,7 +59,14 @@ if ( ! defined( 'WP_DEBUG' ) ) {
 }
 
 /**
- * Multisite (subdomain network).
+ * Multisite.
+ *
+ * Subdomain network on Live (and locally in Lando); subdirectory network on
+ * every other Pantheon environment (dev, test, multidevs), e.g.
+ * emeliosm.esmwebsolutions.com on Live becomes test-esmm.pantheonsite.io/emeliosm/
+ * on Test. pantheon.yml sets search_replace: convert so Pantheon performs that
+ * conversion when content is cloned from Live.
+ * https://docs.pantheon.io/guides/multisite/search-replace
  *
  * On Pantheon the network domain follows the environment hostname
  * (PANTHEON_HOSTNAME is defined in wp-config-pantheon.php). Locally,
@@ -67,7 +74,11 @@ if ( ! defined( 'WP_DEBUG' ) ) {
  */
 define( 'WP_ALLOW_MULTISITE', true );
 define( 'MULTISITE', true );
-define( 'SUBDOMAIN_INSTALL', true );
+if ( ! empty( $_ENV['PANTHEON_ENVIRONMENT'] ) && 'live' !== $_ENV['PANTHEON_ENVIRONMENT'] ) {
+	define( 'SUBDOMAIN_INSTALL', false );
+} else {
+	define( 'SUBDOMAIN_INSTALL', true );
+}
 if ( ! defined( 'DOMAIN_CURRENT_SITE' ) ) {
 	define( 'DOMAIN_CURRENT_SITE', defined( 'PANTHEON_HOSTNAME' ) ? PANTHEON_HOSTNAME : 'esmwebsolutions.com' );
 }

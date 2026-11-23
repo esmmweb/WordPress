@@ -8,6 +8,10 @@ database:
 
 enforce_https: transitional
 
+# Multisite: subdomain network on Live, subdirectory on dev/test/multidevs.
+# https://docs.pantheon.io/guides/multisite/search-replace
+search_replace: convert
+
 protected_web_paths:
   - /private/
   - /wp-content/uploads/private/
